@@ -28,9 +28,10 @@ log_message() {
 
 send_email() {
     local subject="$1"
-    local message="$2"
+    local message="$2"cat monitor.sh
+
     echo " $message" | mail -s "$subject" "$EMAIL_ADMIN" || log_message "Error: Failed to send email to $EMAIL_ADMIN"
-]
+}
 
 check_cpu() {
     local cpu_usage
@@ -70,7 +71,7 @@ check_ram() {
 
 check_disk() {
     local disk_usage
-    disk_usage=$(df -h / | tail  -1 | awk '{print $5}' | cat -d% -f1)
+    disk_usage=$(df -h / | tail  -1 | awk '{print $5}' | cut -d% -f1)
     if [ -z "$disk_usage" ]; then
         log_message "Errot: Failed to retrieve Disk usage"
         echo "ERROR"
@@ -89,12 +90,12 @@ check_services() {
     local service_status="OK"
     local service_report=""
     for service in "${SERVICES[@]}"; do
-        if systemctl list-units --full --all | grep -q "$servic.service"; then
+        if systemctl list-units --full --all | grep -q "$service.service"; then
             if systemctl is-active --quiet "$service"; then
                 service_report="$service_report $service:RUNNING"
             else
                 service_report="$service_report $service:DOWN"
-                service_status="CRITICAL""
+                service_status="CRITICAL"
                 log_message "ALERT: Service $service is down"
                 send_email "System Alert: Service Down" "Service $Service is down on $(hostname) at $(date)"
             fi
@@ -119,7 +120,7 @@ main() {
     local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
     echo "$timestamp,$cpu_usage,$ram_usage,$disk_usage,$service_status" | sudo tee -a "$REPORT_FILE" > /dev/null || log_message "Error: Failed to write to $REPORT_FILE"
 
-    echo "System Monitoring Reoirt:"
+    echo "System Monitoring Report:"
     echo "------------------------"
     echo "Timestamp: $timestamp"
     echo "CPU Usage: $cpu_usage"
